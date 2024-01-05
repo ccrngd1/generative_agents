@@ -248,7 +248,7 @@ def load_history_via_whisper(personas, whispers):
     s, p, o = generate_action_event_triple(thought, persona)
     keywords = set([s, p, o])
     thought_poignancy = generate_poig_score(persona, "event", whisper)
-    thought_embedding_pair = (thought, get_embedding(thought))
+    thought_embedding_pair = (thought, get_llm().get_embedding(thought))
     persona.a_mem.add_thought(created, expiration, s, p, o, 
                               thought, keywords, thought_poignancy, 
                               thought_embedding_pair, None)
@@ -285,7 +285,7 @@ def open_convo_session(persona, convo_mode):
     s, p, o = generate_action_event_triple(thought, persona)
     keywords = set([s, p, o])
     thought_poignancy = generate_poig_score(persona, "event", whisper)
-    thought_embedding_pair = (thought, get_embedding(thought))
+    thought_embedding_pair = (thought, get_llm().get_embedding(thought))
     persona.a_mem.add_thought(created, expiration, s, p, o, 
                               thought, keywords, thought_poignancy, 
                               thought_embedding_pair, None)

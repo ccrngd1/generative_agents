@@ -8,7 +8,8 @@ import sys
 sys.path.append('../../')
 
 from global_methods import *
-from persona.prompt_template.gpt_structure import *
+#from persona.prompt_template.gpt_structure import *
+from persona.prompt_template.llm import * 
 
 from numpy import dot
 from numpy.linalg import norm
@@ -186,7 +187,7 @@ def extract_relevance(persona, nodes, focal_pt):
     relevance_out: A dictionary whose keys are the node.node_id and whose values
                  are the float that represents the relevance score. 
   """
-  focal_embedding = get_embedding(focal_pt)
+  focal_embedding = get_llm().get_embedding(focal_pt)
 
   relevance_out = dict()
   for count, node in enumerate(nodes): 

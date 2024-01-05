@@ -201,6 +201,8 @@ class Persona:
         writing her next novel (editing her novel) 
         @ double studio:double studio:common room:sofa
     """
+    print(datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S") + " starting persona.move")
+    
     # Updating persona's scratch memory with <curr_tile>. 
     self.scratch.curr_tile = curr_tile
 
@@ -228,7 +230,10 @@ class Persona:
     # <description> is a string description of the movement. e.g., 
     #   writing her next novel (editing her novel) 
     #   @ double studio:double studio:common room:sofa
-    return self.execute(maze, personas, plan)
+    retVal = self.execute(maze, personas, plan)
+    
+    print(datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S") + " ending persona.move")
+    return retVal
 
 
   def open_convo_session(self, convo_mode): 

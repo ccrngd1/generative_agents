@@ -6,6 +6,7 @@ Description: Compresses a simulation for replay demos.
 """
 import shutil
 import json
+import sys
 from global_methods import *
 
 def compress(sim_code):
@@ -60,7 +61,7 @@ def compress(sim_code):
 
 
 if __name__ == '__main__':
-  compress("July1_the_ville_isabella_maria_klaus-step-3-9")
+  compress(sys.argv[1])
 
 
 

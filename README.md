@@ -1,5 +1,5 @@
-
-
+https://github.com/ccrngd1/generative_agents
+https://github.com/joonspk-research/generative_agents/pull/16/files
 # Generative Agents: Interactive Simulacra of Human Behavior 
 
 <p align="center" width="100%">

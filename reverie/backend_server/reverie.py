@@ -304,6 +304,8 @@ class ReverieServer:
 
     # The main while loop of Reverie. 
     while (True): 
+      print('REVERIE START_SERVER ' + datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
+        
       # Done with this iteration if <int_counter> reaches 0. 
       if int_counter == 0: 
         break
@@ -370,6 +372,9 @@ class ReverieServer:
           # This is where the core brains of the personas are invoked. 
           movements = {"persona": dict(), 
                        "meta": dict()}
+          
+          print(f'self.personas.items {self.personas.items()}')
+          
           for persona_name, persona in self.personas.items(): 
             # <next_tile> is a x,y coordinate. e.g., (58, 9)
             # <pronunciatio> is an emoji. e.g., "\ud83d\udca4"
@@ -397,6 +402,12 @@ class ReverieServer:
           # {"persona": {"Maria Lopez": {"movement": [58, 9]}},
           #  "persona": {"Klaus Mueller": {"movement": [38, 12]}}, 
           #  "meta": {curr_time: <datetime>}}
+          print('REVERIE START_SERVER write movement to sim_folder' + datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
+          print(f'sim_folder {sim_folder}')
+          curr_move_path = f"{sim_folder}/movement"
+          if not os.path.exists(curr_move_path):
+            os.makedirs(curr_move_path)
+          
           curr_move_file = f"{sim_folder}/movement/{self.step}.json"
           with open(curr_move_file, "w") as outfile: 
             outfile.write(json.dumps(movements, indent=2))
@@ -408,9 +419,16 @@ class ReverieServer:
 
           int_counter -= 1
           
+          print('REVERIE START_SERVER ' + datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
+          print(f'iter {int_counter}')
+          print(f'step {self.step}')
+          print(f'curr_time {self.curr_time}')
+          
       # Sleep so we don't burn our machines. 
       time.sleep(self.server_sleep)
-
+      print('REVERIE sleep over - looping' + datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
+      print(f'REVERIE iter {int_counter}')
+      print(f'REVERIE step {self.step}')
 
   def open_server(self): 
     """

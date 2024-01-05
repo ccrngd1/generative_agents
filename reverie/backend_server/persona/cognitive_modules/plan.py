@@ -10,11 +10,15 @@ import random
 import sys
 import time
 sys.path.append('../../')
+sys.path.append('../../../')
+
+#from util import *
 
 from global_methods import *
-from persona.prompt_template.run_gpt_prompt import *
 from persona.cognitive_modules.retrieve import *
 from persona.cognitive_modules.converse import *
+
+from persona.prompt_template.llm import *
 
 ##############################################################################
 # CHAPTER 2: Generate
@@ -266,7 +270,11 @@ def generate_action_event_triple(act_desp, persona):
 
 def generate_act_obj_desc(act_game_object, act_desp, persona): 
   if debug: print ("GNS FUNCTION: <generate_act_obj_desc>")
-  return run_gpt_prompt_act_obj_desc(act_game_object, act_desp, persona)[0]
+  tempVar = run_gpt_prompt_act_obj_desc(act_game_object, act_desp, persona)
+  
+  if debug: print (tempVar)
+  
+  return tempVar[0]
 
 
 def generate_act_obj_event_triple(act_game_object, act_obj_desc, persona): 
@@ -423,7 +431,7 @@ def revise_identity(persona):
   plan_prompt += f" *{persona.scratch.curr_time.strftime('%A %B %d')}*? "
   plan_prompt += f"If there is any scheduling information, be as specific as possible (include date, time, and location if stated in the statement)\n\n"
   plan_prompt += f"Write the response from {p_name}'s perspective."
-  plan_note = ChatGPT_single_request(plan_prompt)
+  plan_note = get_llm().LLM_single_request(plan_prompt)
   # print (plan_note)
 
   thought_prompt = statements + "\n"
@@ -441,7 +449,7 @@ def revise_identity(persona):
   currently_prompt += "Follow this format below:\nStatus: <new status>"
   # print ("DEBUG ;adjhfno;asdjao;asdfsidfjo;af", p_name)
   # print (currently_prompt)
-  new_currently = ChatGPT_single_request(currently_prompt)
+  new_currently = get_llm().LLM_single_request(currently_prompt)
   # print (new_currently)
   # print (new_currently[10:])
 
@@ -452,7 +460,7 @@ def revise_identity(persona):
   daily_req_prompt += f"Follow this format (the list should have 4~6 items but no more):\n"
   daily_req_prompt += f"1. wake up and complete the morning routine at <time>, 2. ..."
 
-  new_daily_req = ChatGPT_single_request(daily_req_prompt)
+  new_daily_req = get_llm().LLM_single_request(daily_req_prompt)
   new_daily_req = new_daily_req.replace('\n', ' ')
   print ("WE ARE HERE!!!", new_daily_req)
   persona.scratch.daily_plan_req = new_daily_req
@@ -507,7 +515,7 @@ def _long_term_planning(persona, new_day):
   s, p, o = (persona.scratch.name, "plan", persona.scratch.curr_time.strftime('%A %B %d'))
   keywords = set(["plan"])
   thought_poignancy = 5
-  thought_embedding_pair = (thought, get_embedding(thought))
+  thought_embedding_pair = (thought, get_llm().get_embedding(thought))
   persona.a_mem.add_thought(created, expiration, s, p, o, 
                             thought, keywords, thought_poignancy, 
                             thought_embedding_pair, None)

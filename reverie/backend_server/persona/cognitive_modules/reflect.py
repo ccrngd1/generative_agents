@@ -15,8 +15,9 @@ from numpy.linalg import norm
 
 from global_methods import *
 from persona.prompt_template.run_gpt_prompt import *
-from persona.prompt_template.gpt_structure import *
+#from persona.prompt_template.gpt_structure import *
 from persona.cognitive_modules.retrieve import *
+from persona.prompt_template.llm import *
 
 def generate_focal_points(persona, n=3): 
   if debug: print ("GNS FUNCTION: <generate_focal_points>")
@@ -125,7 +126,7 @@ def run_reflect(persona):
       s, p, o = generate_action_event_triple(thought, persona)
       keywords = set([s, p, o])
       thought_poignancy = generate_poig_score(persona, "thought", thought)
-      thought_embedding_pair = (thought, get_embedding(thought))
+      thought_embedding_pair = (thought, get_llm().get_embedding(thought))
 
       persona.a_mem.add_thought(created, expiration, s, p, o, 
                                 thought, keywords, thought_poignancy, 
@@ -221,7 +222,7 @@ def reflect(persona):
       s, p, o = generate_action_event_triple(planning_thought, persona)
       keywords = set([s, p, o])
       thought_poignancy = generate_poig_score(persona, "thought", planning_thought)
-      thought_embedding_pair = (planning_thought, get_embedding(planning_thought))
+      thought_embedding_pair = (planning_thought, get_llm().get_embedding(planning_thought))
 
       persona.a_mem.add_thought(created, expiration, s, p, o, 
                                 planning_thought, keywords, thought_poignancy, 
@@ -237,7 +238,7 @@ def reflect(persona):
       s, p, o = generate_action_event_triple(memo_thought, persona)
       keywords = set([s, p, o])
       thought_poignancy = generate_poig_score(persona, "thought", memo_thought)
-      thought_embedding_pair = (memo_thought, get_embedding(memo_thought))
+      thought_embedding_pair = (memo_thought, get_llm().get_embedding(memo_thought))
 
       persona.a_mem.add_thought(created, expiration, s, p, o, 
                                 memo_thought, keywords, thought_poignancy, 

@@ -42,7 +42,7 @@ def execute(persona, maze, personas, plan):
     # to execute the current action. The goal is to pick one of them.
     target_tiles = None
 
-    print ('aldhfoaf/????')
+    print ('execute.execute() starting')
     print (plan)
 
     if "<persona>" in plan: 
@@ -156,6 +156,9 @@ def execute(persona, maze, personas, plan):
   description += f" @ {persona.scratch.act_address}"
 
   execution = ret, persona.scratch.act_pronunciatio, description
+  
+  print ('execute.execute() ending')
+  
   return execution
 
 
