@@ -218,13 +218,14 @@ def copyanything(src, dst):
     None
   """
   try:
-    print(os.path.abspath(src))
-    print(os.path.abspath(dst))
-    
     shutil.copytree(src, dst)
+  except FileExistsError:
+      # Handle the case where the destination directory already exists
+      # You can choose to ignore the error, merge the directories, or take any other action
+      pass
   except OSError as exc: # python >2.5
     if exc.errno in (errno.ENOTDIR, errno.EINVAL):
-      shutil.copy(src, dst)
+      shutil.copy(src, dst) 
     else: raise
 
 

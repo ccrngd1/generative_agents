@@ -27,6 +27,7 @@ import math
 import os
 import shutil
 import traceback
+import argparse
 
 from selenium import webdriver
 
@@ -34,6 +35,18 @@ from global_methods import *
 from utils import *
 from maze import *
 from persona.persona import *
+
+current_file = os.path.abspath(__file__)
+
+def trace_calls_and_lines(frame, event, arg):
+    if event == 'call':
+        code = frame.f_code
+        filename = code.co_filename
+        short_filename = os.path.relpath(filename)
+        if os.path.abspath(filename).startswith(os.getcwd()):
+        # # if os.path.abspath(filename).startswith():
+        # # if filename == current_file:
+            print(f"Calling function: {code.co_name} in {short_filename}:{code.co_firstlineno}")
 
 ##############################################################################
 #                                  REVERIE                                   #
@@ -43,6 +56,17 @@ class ReverieServer:
   def __init__(self, 
                fork_sim_code,
                sim_code):
+    
+    def _validate_simulation_name(sim_code):
+        # Define the regular expression pattern for validating simulation names
+        pattern = re.compile(r'^[\w-]+$')
+        # Return True if the sim_code matches the pattern, else False
+        return bool(pattern.match(sim_code))
+    if not _validate_simulation_name(fork_sim_code) or not _validate_simulation_name(sim_code):
+      raise ValueError("Invalid simulation code. Only letters, digits, underscores and hyphens are allowed.")
+    
+    print ("(reverie): Temp storage: ", fs_temp_storage)
+        
     # FORKING FROM A PRIOR SIMULATION:
     # <fork_sim_code> indicates the simulation we are forking from. 
     # Interestingly, all simulations must be forked from some initial 
@@ -53,6 +77,9 @@ class ReverieServer:
     # <sim_code> indicates our current simulation. The first step here is to 
     # copy everything that's in <fork_sim_code>, but edit its 
     # reverie/meta/json's fork variable. 
+    if debug:
+      print("(reverie): Loading sim code")
+    
     self.sim_code = sim_code
     sim_folder = f"{fs_storage}/{self.sim_code}"
     copyanything(fork_folder, sim_folder)
@@ -71,27 +98,39 @@ class ReverieServer:
     # change. It takes a string date in the following example form: 
     # "June 25, 2022"
     # e.g., ...strptime(June 25, 2022, "%B %d, %Y")
-    self.start_time = datetime.datetime.strptime(
+    self.time_of_last_env_file = datetime.datetime.strptime(
                         f"{reverie_meta['start_date']}, 00:00:00",  
                         "%B %d, %Y, %H:%M:%S")
+    if debug:
+      print("(reverie): time_of_last_env_file set to: ", self.time_of_last_env_file)
+    
     # <curr_time> is the datetime instance that indicates the game's current
     # time. This gets incremented by <sec_per_step> amount everytime the world
     # progresses (that is, everytime curr_env_file is recieved). 
     self.curr_time = datetime.datetime.strptime(reverie_meta['curr_time'], 
                                                 "%B %d, %Y, %H:%M:%S")
+    if debug:
+      print("(reverie): curr_time set to: ", self.curr_time)
+
     # <sec_per_step> denotes the number of seconds in game time that each 
     # step moves foward. 
     self.sec_per_step = reverie_meta['sec_per_step']
+    if debug:
+      print("(reverie): sec_per_step set to: ", self.sec_per_step)
     
     # <maze> is the main Maze instance. Note that we pass in the maze_name
     # (e.g., "double_studio") to instantiate Maze. 
     # e.g., Maze("double_studio")
-    self.maze = Maze(reverie_meta['maze_name'])
+    self.maze = Maze(reverie_meta['maze_name'])    
+    if debug:
+      print("(reverie): setting maze to : ", reverie_meta['maze_name'])
     
     # <step> denotes the number of steps that our game has taken. A step here
     # literally translates to the number of moves our personas made in terms
     # of the number of tiles. 
     self.step = reverie_meta['step']
+    if debug:
+      print("(reverie): number of steps game has taken : ", reverie_meta['step'])
 
     # SETTING UP PERSONAS IN REVERIE
     # <personas> is a dictionary that takes the persona's full name as its 
@@ -120,8 +159,14 @@ class ReverieServer:
 
     # Loading in all personas. 
     init_env_file = f"{sim_folder}/environment/{str(self.step)}.json"
+    if debug:
+      print("(reverie): loading init_env_file ", init_env_file)
     init_env = json.load(open(init_env_file))
+    if debug:
+      print("(reverie): Setting up and loading personas")
     for persona_name in reverie_meta['persona_names']: 
+      if debug:
+        print("(reverie):      loading ", persona_name)      
       persona_folder = f"{sim_folder}/personas/{persona_name}"
       p_x = init_env[persona_name]["x"]
       p_y = init_env[persona_name]["y"]
@@ -135,7 +180,9 @@ class ReverieServer:
     # REVERIE SETTINGS PARAMETERS:  
     # <server_sleep> denotes the amount of time that our while loop rests each
     # cycle; this is to not kill our machine. 
-    self.server_sleep = 0.1
+    self.server_sleep = 0.01
+    if debug:
+      print("(reverie): server_sleep set to ", self.server_sleep)
 
     # SIGNALING THE FRONTEND SERVER: 
     # curr_sim_code.json contains the current simulation code, and
@@ -147,11 +194,15 @@ class ReverieServer:
     curr_sim_code["sim_code"] = self.sim_code
     with open(f"{fs_temp_storage}/curr_sim_code.json", "w") as outfile: 
       outfile.write(json.dumps(curr_sim_code, indent=2))
+      if debug:
+        print("(reverie): writing curr_sim_code to ", outfile)
     
     curr_step = dict()
     curr_step["step"] = self.step
     with open(f"{fs_temp_storage}/curr_step.json", "w") as outfile: 
       outfile.write(json.dumps(curr_step, indent=2))
+      if debug:
+        print("(reverie): writing curr_step to ", outfile)
 
 
   def save(self): 
@@ -171,7 +222,7 @@ class ReverieServer:
     # Save Reverie meta information.
     reverie_meta = dict() 
     reverie_meta["fork_sim_code"] = self.fork_sim_code
-    reverie_meta["start_date"] = self.start_time.strftime("%B %d, %Y")
+    reverie_meta["start_date"] = self.time_of_last_env_file.strftime("%B %d, %Y")
     reverie_meta["curr_time"] = self.curr_time.strftime("%B %d, %Y, %H:%M:%S")
     reverie_meta["sec_per_step"] = self.sec_per_step
     reverie_meta["maze_name"] = self.maze.maze_name
@@ -289,6 +340,8 @@ class ReverieServer:
     OUTPUT 
       None
     """
+    if debug:
+      print("(reverie) running for {} steps".format(int_counter))
     # <sim_folder> points to the current simulation folder.
     sim_folder = f"{fs_storage}/{self.sim_code}"
 
@@ -302,10 +355,12 @@ class ReverieServer:
     # <game_obj_cleanup> is used for that. 
     game_obj_cleanup = dict()
 
+    time_of_last_env_file = time.time()
+    last_print_wait_time = time_of_last_env_file
+
     # The main while loop of Reverie. 
     while (True): 
-      print('REVERIE START_SERVER ' + datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
-        
+      
       # Done with this iteration if <int_counter> reaches 0. 
       if int_counter == 0: 
         break
@@ -315,7 +370,18 @@ class ReverieServer:
       # new environment file that matches our step count. That's when we run 
       # the content of this for loop. Otherwise, we just wait. 
       curr_env_file = f"{sim_folder}/environment/{self.step}.json"
+
+      current_time = time.time()
+      if debug and (current_time - last_print_wait_time) >= 50:
+        total_wait_time = current_time - time_of_last_env_file 
+        print(f"(reverie): waiting for new curr_env_file: {curr_env_file} | Total wait time: {total_wait_time:.2f} seconds")
+
       if check_if_file_exists(curr_env_file):
+        time_of_last_env_file = time.time()
+
+        if debug:
+          print ("(reverie): new curr_env_file found: ", curr_env_file)
+
         # If we have an environment file, it means we have a new perception
         # input to our personas. So we first retrieve it.
         try: 
@@ -323,27 +389,41 @@ class ReverieServer:
           with open(curr_env_file) as json_file:
             new_env = json.load(json_file)
             env_retrieved = True
-        except: 
+        except Exception as e: 
+          print("Failure to open ") 
           pass
       
         if env_retrieved: 
           # This is where we go through <game_obj_cleanup> to clean up all 
           # object actions that were used in this cylce. 
+          if debug:
+            print ("(reverie): cleaning up object actions ")
           for key, val in game_obj_cleanup.items(): 
             # We turn all object actions to their blank form (with None). 
+            if debug:
+              print ("(reverie): turning event from title idle: ", key, val)
             self.maze.turn_event_from_tile_idle(key, val)
           # Then we initialize game_obj_cleanup for this cycle. 
           game_obj_cleanup = dict()
 
           # We first move our personas in the backend environment to match 
           # the frontend environment. 
+          if debug:
+            print ("(reverie): move personas in the backend to match frontend")
           for persona_name, persona in self.personas.items(): 
+            if debug:
+              print ("(reverie):   moving persona", persona_name)
             # <curr_tile> is the tile that the persona was at previously. 
             curr_tile = self.personas_tile[persona_name]
             # <new_tile> is the tile that the persona will move to right now,
             # during this cycle. 
-            new_tile = (new_env[persona_name]["x"], 
-                        new_env[persona_name]["y"])
+            try:
+              new_tile = (new_env[persona_name]["x"], 
+                          new_env[persona_name]["y"])
+            except KeyError:
+              print("Could not load {} from new_env file in {}".format(persona_name, curr_env_file))
+              print("Current new_env file: {}".format(new_env))
+              raise KeyError  
 
             # We actually move the persona on the backend tile map here. 
             self.personas_tile[persona_name] = new_tile
@@ -372,9 +452,6 @@ class ReverieServer:
           # This is where the core brains of the personas are invoked. 
           movements = {"persona": dict(), 
                        "meta": dict()}
-          
-          print(f'self.personas.items {self.personas.items()}')
-          
           for persona_name, persona in self.personas.items(): 
             # <next_tile> is a x,y coordinate. e.g., (58, 9)
             # <pronunciatio> is an emoji. e.g., "\ud83d\udca4"
@@ -402,12 +479,9 @@ class ReverieServer:
           # {"persona": {"Maria Lopez": {"movement": [58, 9]}},
           #  "persona": {"Klaus Mueller": {"movement": [38, 12]}}, 
           #  "meta": {curr_time: <datetime>}}
-          print('REVERIE START_SERVER write movement to sim_folder' + datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
-          print(f'sim_folder {sim_folder}')
           curr_move_path = f"{sim_folder}/movement"
           if not os.path.exists(curr_move_path):
             os.makedirs(curr_move_path)
-          
           curr_move_file = f"{sim_folder}/movement/{self.step}.json"
           with open(curr_move_file, "w") as outfile: 
             outfile.write(json.dumps(movements, indent=2))
@@ -418,19 +492,11 @@ class ReverieServer:
           self.curr_time += datetime.timedelta(seconds=self.sec_per_step)
 
           int_counter -= 1
-          
-          print('REVERIE START_SERVER ' + datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
-          print(f'iter {int_counter}')
-          print(f'step {self.step}')
-          print(f'curr_time {self.curr_time}')
-          
       # Sleep so we don't burn our machines. 
       time.sleep(self.server_sleep)
-      print('REVERIE sleep over - looping' + datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
-      print(f'REVERIE iter {int_counter}')
-      print(f'REVERIE step {self.step}')
 
-  def open_server(self): 
+
+  def open_server(self, input_command: str = None) -> None: 
     """
     Open up an interactive terminal prompt that lets you run the simulation 
     step by step and probe agent state. 
@@ -449,7 +515,10 @@ class ReverieServer:
     sim_folder = f"{fs_storage}/{self.sim_code}"
 
     while True: 
-      sim_command = input("Enter option: ")
+      if not input_command:
+        sim_command = input("Enter option: ")
+      else:
+        sim_command = input_command
       sim_command = sim_command.strip()
       ret_str = ""
 
@@ -483,7 +552,7 @@ class ReverieServer:
           # Runs the number of steps specified in the prompt.
           # Example: run 1000
           int_count = int(sim_command.split()[-1])
-          rs.start_server(int_count)
+          self.start_server(int_count)
 
         elif ("print persona schedule" 
               in sim_command[:22].lower()): 
@@ -607,76 +676,49 @@ class ReverieServer:
               clean_whispers += [[agent_name, whisper]]
 
           load_history_via_whisper(self.personas, clean_whispers)
+        else:
+          print("Unrecognized command: ", sim_command)
 
         print (ret_str)
-
-      except:
-        traceback.print_exc()
-        print ("Error.")
-        pass
-
+        
+      except Exception as e:
+        print("(reverie): Error: ", e)
+        # remove movement file if it exists
+        movement_file = f"{sim_folder}/movement/{self.step}.json"
+        if os.path.exists(movement_file):
+          os.remove(movement_file)
+        # remove environment file if it exists
+        env_file = f"{sim_folder}/environment/{self.step}.json"
+        if os.path.exists(env_file):
+          os.remove(env_file)
+        print(f"(reverie): Error at step {self.step}")
+        self.step -= 1
+        self.curr_time -= datetime.timedelta(seconds=self.sec_per_step)
+        raise Exception(e, self.step)
+      else:
+        # If an input command was passed, then execute one command and exit.
+        if input_command:
+          break
 
 if __name__ == '__main__':
-  # rs = ReverieServer("base_the_ville_isabella_maria_klaus", 
-  #                    "July1_the_ville_isabella_maria_klaus-step-3-1")
-  # rs = ReverieServer("July1_the_ville_isabella_maria_klaus-step-3-20", 
-  #                    "July1_the_ville_isabella_maria_klaus-step-3-21")
-  # rs.open_server()
 
-  origin = input("Enter the name of the forked simulation: ").strip()
-  target = input("Enter the name of the new simulation: ").strip()
-
+  # Pars input params
+  parser = argparse.ArgumentParser(description='Reverie Server')
+  parser.add_argument(
+    '--origin',
+    type=str,
+    default="base_the_ville_isabella_maria_klaus",
+    help='The name of the forked simulation'
+  )
+  parser.add_argument(
+    '--target',
+    type=str,
+    default="test-simulation",
+    help='The name of the new simulation'
+  )
+    
+  origin = parser.parse_args().origin
+  target = parser.parse_args().target
+  
   rs = ReverieServer(origin, target)
   rs.open_server()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

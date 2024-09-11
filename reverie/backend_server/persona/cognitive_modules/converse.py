@@ -208,19 +208,10 @@ def generate_inner_thought(persona, whisper):
   inner_thought = run_gpt_prompt_generate_whisper_inner_thought(persona, whisper)[0]
   return inner_thought
 
-def generate_action_event_triple(act_desp, persona): 
-  """TODO 
-
-  INPUT: 
-    act_desp: the description of the action (e.g., "sleeping")
-    persona: The Persona class instance
-  OUTPUT: 
-    a string of emoji that translates action description.
-  EXAMPLE OUTPUT: 
-    "🧈🍞"
-  """
-  if debug: print ("GNS FUNCTION: <generate_action_event_triple>")
-  return run_gpt_prompt_event_triple(act_desp, persona)[0]
+#adding from ollama patch
+def generate_thought_triple(act_desp, persona): 
+  if debug: print ("GNS FUNCTION: <generate_thought_triple>")
+  return run_gpt_prompt_thought_triple(act_desp, persona)[0]
 
 
 def generate_poig_score(persona, event_type, description): 
@@ -245,26 +236,31 @@ def load_history_via_whisper(personas, whispers):
 
     created = persona.scratch.curr_time
     expiration = persona.scratch.curr_time + datetime.timedelta(days=30)
-    s, p, o = generate_action_event_triple(thought, persona)
+    s, p, o = generate_thought_triple(thought, persona) #added from ollama patch
     keywords = set([s, p, o])
     thought_poignancy = generate_poig_score(persona, "event", whisper)
-    thought_embedding_pair = (thought, get_llm().get_embedding(thought))
+    thought_embedding_pair = (thought, get_embedding(thought))
     persona.a_mem.add_thought(created, expiration, s, p, o, 
                               thought, keywords, thought_poignancy, 
                               thought_embedding_pair, None)
 
 
-def open_convo_session(persona, convo_mode): 
+def open_convo_session(persona, convo_mode, safe_mode=True, direct=False, question: str=None): 
+  if direct and question is None:
+    raise ValueError("If direct is True, question must be provided.")
   if convo_mode == "analysis": 
     curr_convo = []
     interlocutor_desc = "Interviewer"
 
-    while True: 
-      line = input("Enter Input: ")
+    while True:
+      if direct:
+        line = question
+      else:
+        line = input("Enter Input: ")
       if line == "end_convo": 
         break
 
-      if int(run_gpt_generate_safety_score(persona, line)[0]) >= 8: 
+      if int(run_gpt_generate_safety_score(persona, line)[0]) >= 8 and safe_mode: 
         print (f"{persona.scratch.name} is a computational agent, and as such, it may be inappropriate to attribute human agency to the agent in your communication.")        
 
       else: 
@@ -274,6 +270,8 @@ def open_convo_session(persona, convo_mode):
 
         next_line = generate_next_line(persona, interlocutor_desc, curr_convo, summarized_idea)
         curr_convo += [[persona.scratch.name, next_line]]
+        if direct: 
+          return curr_convo
 
 
   elif convo_mode == "whisper": 
@@ -282,10 +280,10 @@ def open_convo_session(persona, convo_mode):
 
     created = persona.scratch.curr_time
     expiration = persona.scratch.curr_time + datetime.timedelta(days=30)
-    s, p, o = generate_action_event_triple(thought, persona)
+    s, p, o = generate_thought_triple(thought, persona)
     keywords = set([s, p, o])
     thought_poignancy = generate_poig_score(persona, "event", whisper)
-    thought_embedding_pair = (thought, get_llm().get_embedding(thought))
+    thought_embedding_pair = (thought, get_embedding(thought))
     persona.a_mem.add_thought(created, expiration, s, p, o, 
                               thought, keywords, thought_poignancy, 
                               thought_embedding_pair, None)

@@ -10,15 +10,11 @@ import random
 import sys
 import time
 sys.path.append('../../')
-sys.path.append('../../../')
-
-#from util import *
 
 from global_methods import *
+from persona.prompt_template.run_gpt_prompt import *
 from persona.cognitive_modules.retrieve import *
 from persona.cognitive_modules.converse import *
-
-from persona.prompt_template.llm import *
 
 ##############################################################################
 # CHAPTER 2: Generate
@@ -253,28 +249,14 @@ def generate_action_pronunciatio(act_desp, persona):
   return x
 
 
-def generate_action_event_triple(act_desp, persona): 
-  """TODO 
-
-  INPUT: 
-    act_desp: the description of the action (e.g., "sleeping")
-    persona: The Persona class instance
-  OUTPUT: 
-    a string of emoji that translates action description.
-  EXAMPLE OUTPUT: 
-    "🧈🍞"
-  """
+def generate_action_event_triple(act_desp, persona):  
   if debug: print ("GNS FUNCTION: <generate_action_event_triple>")
   return run_gpt_prompt_event_triple(act_desp, persona)[0]
 
 
 def generate_act_obj_desc(act_game_object, act_desp, persona): 
   if debug: print ("GNS FUNCTION: <generate_act_obj_desc>")
-  tempVar = run_gpt_prompt_act_obj_desc(act_game_object, act_desp, persona)
-  
-  if debug: print (tempVar)
-  
-  return tempVar[0]
+  return run_gpt_prompt_act_obj_desc(act_game_object, act_desp, persona)[0]
 
 
 def generate_act_obj_event_triple(act_game_object, act_obj_desc, persona): 
@@ -431,7 +413,7 @@ def revise_identity(persona):
   plan_prompt += f" *{persona.scratch.curr_time.strftime('%A %B %d')}*? "
   plan_prompt += f"If there is any scheduling information, be as specific as possible (include date, time, and location if stated in the statement)\n\n"
   plan_prompt += f"Write the response from {p_name}'s perspective."
-  plan_note = get_llm().LLM_single_request(plan_prompt)
+  plan_note = ChatGPT_single_request(plan_prompt)
   # print (plan_note)
 
   thought_prompt = statements + "\n"
@@ -449,7 +431,7 @@ def revise_identity(persona):
   currently_prompt += "Follow this format below:\nStatus: <new status>"
   # print ("DEBUG ;adjhfno;asdjao;asdfsidfjo;af", p_name)
   # print (currently_prompt)
-  new_currently = get_llm().LLM_single_request(currently_prompt)
+  new_currently = ChatGPT_single_request(currently_prompt)
   # print (new_currently)
   # print (new_currently[10:])
 
@@ -460,7 +442,7 @@ def revise_identity(persona):
   daily_req_prompt += f"Follow this format (the list should have 4~6 items but no more):\n"
   daily_req_prompt += f"1. wake up and complete the morning routine at <time>, 2. ..."
 
-  new_daily_req = get_llm().LLM_single_request(daily_req_prompt)
+  new_daily_req = ChatGPT_single_request(daily_req_prompt)
   new_daily_req = new_daily_req.replace('\n', ' ')
   print ("WE ARE HERE!!!", new_daily_req)
   persona.scratch.daily_plan_req = new_daily_req
@@ -515,7 +497,7 @@ def _long_term_planning(persona, new_day):
   s, p, o = (persona.scratch.name, "plan", persona.scratch.curr_time.strftime('%A %B %d'))
   keywords = set(["plan"])
   thought_poignancy = 5
-  thought_embedding_pair = (thought, get_llm().get_embedding(thought))
+  thought_embedding_pair = (thought, get_embedding(thought))
   persona.a_mem.add_thought(created, expiration, s, p, o, 
                             thought, keywords, thought_poignancy, 
                             thought_embedding_pair, None)
@@ -603,7 +585,7 @@ def _determine_action(persona, maze):
   # Generate an <Action> instance from the action description and duration. By
   # this point, we assume that all the relevant actions are decomposed and 
   # ready in f_daily_schedule. 
-  print ("DEBUG LJSDLFSKJF")
+  print ("DEBUG SHOW SCHEDULE ") #add from ollama patch
   for i in persona.scratch.f_daily_schedule: print (i)
   print (curr_index)
   print (len(persona.scratch.f_daily_schedule))
@@ -644,6 +626,23 @@ def _determine_action(persona, maze):
   act_obj_pron = generate_action_pronunciatio(act_obj_desp, persona)
   act_obj_event = generate_act_obj_event_triple(act_game_object, 
                                                 act_obj_desp, persona)
+  #add from ollama patch
+  if debug: 
+    print("GNS ADDING NEW ACTION: ")
+    print("----  persona_name: ", persona.scratch.name)
+    print("----  act_world:    ", act_world)
+    print("----  act_sector:   ", act_sector)
+    print("----  new_address: ", new_address)
+    print("----  act_desp:     ", act_desp)
+    print("----  act_dura:     ", act_dura)
+    print("----  act_game_object: ", act_game_object)
+    print("----  act_arena:    ", act_arena)
+    print("----  act_adress:   ", act_address)
+    print("----  act_pron:   ", act_pron)
+    print("----  act_event:   ", act_event)
+    print("----  act_obj_desp:   ", act_obj_desp)
+    print("----  act_obj_pron:   ", act_obj_pron)
+    print("----  act_obj_event:   ", act_obj_event)
 
   # Adding the action to persona's queue. 
   persona.scratch.add_new_action(new_address, 
